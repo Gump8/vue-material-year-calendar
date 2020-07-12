@@ -54,6 +54,7 @@ export default {
   },
   data () {
     return {
+      fullOriginShowDays: [],
       showDays: [],
       isMouseDown: false,
       firstDay: '' // showDays 数组中每个月 1号 的索引值
@@ -89,12 +90,12 @@ export default {
       const activeMonth = dayjs().set('date', 1).set('year', this.year).set('month', this.month - 1)
       let firstDay = activeMonth.startOf('month').day() - 1
       if (firstDay < 0) firstDay += 7
-      this.firstDay = firstDay
       const lastDate = activeMonth.endOf('month').date()
       const weekRow = firstDay >= 5 ? 6 : 5
+      this.firstDay = firstDay
       const WEEK = 7
       let day = 0
-      const fullCol = Array.from(Array(weekRow * WEEK).keys()).map(i => {
+      this.fullOriginShowDays = Array.from(Array(weekRow * WEEK).keys()).map(i => {
         let value = firstDay <= i ? day++ % lastDate + 1 : ''
         const isOtherMonth = firstDay > i || day > lastDate
         return {
@@ -104,14 +105,13 @@ export default {
           dateStr: value && !isOtherMonth ? dayjs().set('year', this.year).set('month', this.month - 1).set('date', value).format('YYYY-MM-DD') : ''
         }
       })
-      this.showDays = fullCol
-      this.initActiveDates()
+      this.initActiveDates(this.activeDates)
     },
-    initActiveDates () {
+    initActiveDates (nVal) {
       // 把 toggleDate 的內容合併在 initCalendar 裡。
-      this.activeDates.forEach(date => {
+      this.resetAllActive()
+      nVal.forEach(date => {
         let oDate
-
         if (typeof date === 'string') {
           oDate = {
             date: date,
@@ -120,7 +120,6 @@ export default {
         } else if (typeof date === 'object') {
           oDate = date
         }
-
         let dayjsObj = dayjs(oDate.date)
         if (dayjsObj.year() !== this.year) return
         let activeDate = dayjsObj.date()
@@ -129,6 +128,10 @@ export default {
         this.showDays[activeArrayKey].active = true // to array index
         this.showDays[activeArrayKey].className = oDate.className
       })
+      // console.log('this.showDays', this.showDays)
+    },
+    resetAllActive () {
+      this.showDays = JSON.parse(JSON.stringify(this.fullOriginShowDays))
     },
     showDayTitle (day) {
       const dayMapping = {
@@ -176,9 +179,9 @@ export default {
       this.initCalendar()
     },
     // 外層來的資料有變化時
-    activeDates (after, before) {
-      this.initCalendar()
-      // this.initActiveDates()
+    activeDates (nVal) {
+      if (!(nVal instanceof Array)) return
+      this.initActiveDates(nVal)
     }
   },
   created () {
