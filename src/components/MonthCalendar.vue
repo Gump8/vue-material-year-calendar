@@ -56,7 +56,7 @@ export default {
     return {
       showDays: [],
       isMouseDown: false,
-      firstDay: ''
+      firstDay: '' // showDays 数组中每个月 1号 的索引值
     }
   },
   computed: {
@@ -87,8 +87,9 @@ export default {
     initCalendar () {
       if (!this.year || !this.month) return []
       const activeMonth = dayjs().set('date', 1).set('year', this.year).set('month', this.month - 1)
-      let firstDay = this.firstDay = activeMonth.startOf('month').day() - 1
+      let firstDay = activeMonth.startOf('month').day() - 1
       if (firstDay < 0) firstDay += 7
+      this.firstDay = firstDay
       const lastDate = activeMonth.endOf('month').date()
       const weekRow = firstDay >= 5 ? 6 : 5
       const WEEK = 7
