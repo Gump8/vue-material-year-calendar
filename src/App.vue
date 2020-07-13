@@ -31,6 +31,9 @@
       Hide sunday
       <input type="checkbox" v-model="hideSunday" >
     </label>
+    <label>
+      <button @click="resetAcitveDates"><h1>Reset</h1></button>
+    </label>
 
     <year-calendar
       v-model="year"
@@ -59,12 +62,7 @@ export default {
     return {
       lang: 'en', // 'en', 'tw', 'pt'
       year: 2019,
-      activeDates: [
-        { date: '2019-02-13' },
-        { date: '2019-02-14', className: 'red' },
-        { date: '2019-02-15', className: 'blue' },
-        { date: '2019-02-16', className: 'your_customized_classname' }
-      ],
+      activeDates: [],
       activeClass: '',
       showYearSelector: true,
       hideWeekend: false,
@@ -72,10 +70,12 @@ export default {
     }
   },
   methods: {
+    resetAcitveDates () {
+      this.activeDates = []
+    },
     toggleDate (dateInfo) {
       console.log(dateInfo)
     },
-
     add_sat_and_sun_of_year () {
       let theDate = dayjs(`${this.year}-01-01`)
 

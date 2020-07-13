@@ -12,17 +12,24 @@
       <!-- <span><button @click="addYear(1)">next</button></span> -->
     </div>
     <div class="container__months"
+         @contextmenu.prevent
+         @mouseup.left="mouseUp('confirm', 'mouseup.left')"
+         @mouseleave.stop="mouseUp('cancel', 'mouseleave.stop')"
+         @mousedown.right.prevent="mouseUp('cancel', 'mousedown.right')"
          :class="{'hide-weekend': hideWeekend, 'hide-sunday': hideSunday}">
       <month-calendar class="container__month"
                       v-for="n in 12"
                       :key="`month-${n}`"
                       :year="activeYear"
                       :month="n"
+                      :isMouseDown.sync="isMouseDown"
                       :activeDates="month[n]"
+                      :togglingDates="togglingMonth[n]"
                       :activeClass="activeClass"
                       @toggleDate="toggleDate"
                       :lang="lang"
-                      :prefixClass="prefixClass">
+                      :prefixClass="prefixClass"
+                      :togglingClass="togglingClass">
       </month-calendar>
       <div class="container__month p-0"></div>
       <div class="container__month p-0"></div>
@@ -94,6 +101,10 @@ export default {
       type: String,
       default: () => 'calendar--active'
     },
+    togglingClass: {
+      type: String,
+      default: () => 'calendar--toggling'
+    },
     hideWeekend: {
       type: Boolean,
       default: false
@@ -105,7 +116,14 @@ export default {
   },
   data () {
     return {
-      isUsingString: true
+      isUsingString: true,
+      isMouseDown: false,
+      // isToggleDateFirst: true,
+      isAddOneActiveDate: false,
+      toggleDateFirst: {},
+      toggleDateLast: {},
+      isToggling: false,
+      togglingDates: []
     }
   },
   components: {
@@ -115,6 +133,31 @@ export default {
     month () {
       const month = {}
       this.activeDates.forEach(date => {
+        let oDate
+
+        if (typeof date === 'string') {
+          oDate = {
+            date: date,
+            className: this.activeClass
+          }
+        } else {
+          // 若 activeDate 裡的物件少了 className 屬性，就自動填入空字串。否則會變成undefined
+          oDate = {
+            date: date.date,
+            className: date.className || ''
+          }
+        }
+
+        if (dayjs(oDate.date).year() !== this.value) return // 讓2020年1月的資料，不會放到 2019年的1月資料裡
+        let m = (dayjs(oDate.date).month() + 1).toString()
+        if (!month[m]) month[m] = []
+        month[m].push(oDate)
+      })
+      return month
+    },
+    togglingMonth () {
+      const month = {}
+      this.togglingDates.forEach(date => {
         let oDate
 
         if (typeof date === 'string') {
@@ -148,17 +191,100 @@ export default {
     }
   },
   methods: {
+    mouseUp (type, type2) {
+      console.log(type2)
+      if (this.isMouseDown && this.isToggling && type === 'confirm') {
+        this.$emit('update:activeDates', this.concatTogglingAndActive())
+      }
+      setTimeout(() => {
+        this.togglingDates = []
+        this.isToggling = false
+        this.isMouseDown = false
+        this.isAddOneActiveDate = false
+      }, 300)
+    },
     changeYear (idx) {
       this.activeYear = idx + this.activeYear - 3
     },
+    concatTogglingAndActive () {
+      const activeDates = this.activeDates.map(item => item.date)
+      const togglingDates = this.togglingDates.map(item => item.date)
+      const sameInArr = activeDates.filter(item => togglingDates.includes(item))
+      const newArr = activeDates.filter(item => !sameInArr.includes(item)).concat(togglingDates.filter(item => !sameInArr.includes(item)))
+      return newArr.map(item => {
+        return { date: item }
+      })
+    },
+    // toggleDate (dateObj) {
+    //   const activeDate = dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
+    //   this.$emit('toggleDate', {
+    //     date: activeDate,
+    //     selected: dateObj.selected,
+    //     className: dateObj.className
+    //   })
+
+    //   let dateIndex
+    //   let newDates
+
+    //   if (this.isUsingString) {
+    //     dateIndex = this.activeDates.indexOf(activeDate)
+    //     newDates = this.modifiedActiveDates(dateIndex, activeDate)
+    //   } else {
+    //     let oDate = {
+    //       date: activeDate,
+    //       className: dateObj.className // 原為 this.defaultClassName ，修正bug(丁丁)
+    //     }
+
+    //     dateIndex = this.activeDates.indexOf(this.activeDates.find((i) => i.date === activeDate))
+    //     newDates = this.modifiedActiveDates(dateIndex, oDate)
+    //   }
+    //   this.$emit('update:activeDates', newDates)
+    // },
     toggleDate (dateObj) {
       const activeDate = dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
-      this.$emit('toggleDate', {
-        date: activeDate,
-        selected: dateObj.selected,
-        className: dateObj.className
-      })
-
+      let className
+      if (dateObj.isToggleDateFirst) {
+        className = dateObj.className
+        this.toggleDateFirst = activeDate
+        this.addOneActiveDate(this.toggleDateFirst, className)
+        this.isAddOneActiveDate = true
+      } else {
+        if (this.isAddOneActiveDate) {
+          this.addOneActiveDate(this.toggleDateFirst, className)
+          this.isAddOneActiveDate = false
+        }
+        this.toggleDateLast = activeDate
+        this.isToggling = true
+        this.initTogglingDates(this.toggleDateFirst, this.toggleDateLast)
+      }
+      // this.$emit('toggleDate', {
+      //   date: activeDate,
+      //   selected: dateObj.selected,
+      //   className: dateObj.className
+      // })
+    },
+    initTogglingDates (toggleDateFirst, toggleDateLast) {
+      let startDate = dayjs(toggleDateFirst)
+      let endDate = dayjs(toggleDateLast)
+      if (startDate.diff(endDate, 'day') > 0) {
+        let changeDate = startDate
+        startDate = endDate
+        endDate = changeDate
+      }
+      // let isActiveDateUsingString = this.togglingDates.length && typeof this.togglingDates[0] === 'string'
+      let togglingDates = []
+      while (startDate.diff(endDate, 'day') !== 0) {
+        // let oDate = isActiveDateUsingString ? startDate.format('YYYY-MM-DD') : { date: startDate.format('YYYY-MM-DD') }
+        togglingDates.push({ date: startDate.format('YYYY-MM-DD') })
+        startDate = startDate.add(1, 'day')
+      }
+      // let oDate = isActiveDateUsingString ? startDate.format('YYYY-MM-DD') : { date: startDate.format('YYYY-MM-DD') }
+      togglingDates.push({ date: startDate.format('YYYY-MM-DD') })
+      this.togglingDates = togglingDates
+      console.log('initTogglingDates')
+    },
+    // 点击某一天是触发
+    addOneActiveDate (activeDate, className) {
       let dateIndex
       let newDates
 
@@ -168,12 +294,13 @@ export default {
       } else {
         let oDate = {
           date: activeDate,
-          className: dateObj.className // 原為 this.defaultClassName ，修正bug(丁丁)
+          className: className // 原為 this.defaultClassName ，修正bug(丁丁)
         }
 
         dateIndex = this.activeDates.indexOf(this.activeDates.find((i) => i.date === activeDate))
         newDates = this.modifiedActiveDates(dateIndex, oDate)
       }
+      console.log('newDates', newDates)
       this.$emit('update:activeDates', newDates)
     },
     modifiedActiveDates (dateIndex, activeDate) {

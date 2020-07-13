@@ -1,8 +1,6 @@
 <template>
   <div class="c-wrapper">
-    <div class="calendar"
-         @mouseup="mouseUp"
-         @mouseleave.stop="mouseUp">
+    <div class="calendar">
       <div class="calendar__title">{{ monthTitle }}</div>
       <div class="calendar__body">
         <div v-for="(day, key) in 7"
@@ -11,11 +9,12 @@
              :style="{fontSize: weekTitleFontSizeAdjustLang}">{{ showDayTitle(key) }}</div>
         <div v-for="(dayObj, key) in showDays"
              class="calendar__day"
+             :class="classList(dayObj, 'toggling')"
              :key="`day${key}`">
           <div @mouseover="dragDay(dayObj)"
                @mousedown="mouseDown(dayObj)"
                class="day"
-               :class="classList(dayObj)">{{ dayObj.value }}</div>
+               :class="classList(dayObj, 'active')">{{ dayObj.value }}</div>
         </div>
       </div>
     </div>
@@ -28,6 +27,10 @@ export default {
   name: 'month-calendar',
   props: {
     activeDates: {
+      type: Array,
+      default: () => []
+    },
+    togglingDates: {
       type: Array,
       default: () => []
     },
@@ -50,13 +53,20 @@ export default {
     prefixClass: {
       type: String,
       default: () => 'calendar--active'
+    },
+    togglingClass: {
+      type: String,
+      default: () => 'calendar--toggling'
+    },
+    isMouseDown: {
+      type: Boolean,
+      default: () => false
     }
   },
   data () {
     return {
       fullOriginShowDays: [],
       showDays: [],
-      isMouseDown: false,
       firstDay: '' // showDays 数组中每个月 1号 的索引值
     }
   },
@@ -101,15 +111,16 @@ export default {
         return {
           value,
           active: false,
+          toggling: false,
           isOtherMonth,
           dateStr: value && !isOtherMonth ? dayjs().set('year', this.year).set('month', this.month - 1).set('date', value).format('YYYY-MM-DD') : ''
         }
       })
-      this.initActiveDates(this.activeDates)
+      this.initDateClassName(this.activeDates)
     },
-    initActiveDates (nVal) {
+    initDateClassName (nVal, type = 'active') {
       // 把 toggleDate 的內容合併在 initCalendar 裡。
-      this.resetAllActive()
+      this.resetDateClass(type)
       nVal.forEach(date => {
         let oDate
         if (typeof date === 'string') {
@@ -125,13 +136,16 @@ export default {
         let activeDate = dayjsObj.date()
         let row = Math.floor(activeDate / 7)
         let activeArrayKey = (activeDate % 7) - 1 + this.firstDay + 7 * row
-        this.showDays[activeArrayKey].active = true // to array index
-        this.showDays[activeArrayKey].className = oDate.className
+        this.showDays[activeArrayKey][type] = true // to array index
+        this.showDays[activeArrayKey].className = oDate.togglingClassName
       })
-      // console.log('this.showDays', this.showDays)
     },
-    resetAllActive () {
-      this.showDays = JSON.parse(JSON.stringify(this.fullOriginShowDays))
+    resetDateClass (type) {
+      // this.showDays = JSON.parse(JSON.stringify(this.fullOriginShowDays))
+      this.showDays = this.fullOriginShowDays.map(item => {
+        item[type] = false
+        return item
+      })
     },
     showDayTitle (day) {
       const dayMapping = {
@@ -144,33 +158,36 @@ export default {
       }
       return dayMapping[this.lang][day]
     },
-    toggleDay (dayObj) {
+    toggleDay ({ dayObj, isToggleDateFirst }) {
       if (dayObj.isOtherMonth) return
       this.$emit('toggleDate', {
         month: this.month,
         date: dayObj.value,
         selected: !dayObj.active,
-        className: this.activeClass
+        className: this.activeClass,
+        isToggleDateFirst
       })
     },
     dragDay (dayObj) {
-      if (this.isMouseDown) this.toggleDay(dayObj)
+      if (this.isMouseDown) this.toggleDay({ dayObj, isToggleDateFirst: false })
     },
     mouseDown (dayObj) {
-      this.toggleDay(dayObj)
-      this.isMouseDown = true
+      this.toggleDay({ dayObj, isToggleDateFirst: true })
+      // this.isMouseDown = true
+      this.$emit('update:isMouseDown', true)
     },
-    mouseUp () {
-      this.isMouseDown = false
-    },
-    classList (dayObj) {
+    classList (dayObj, type = 'active') {
       let oClassList = {
-        'calendar__day--otherMonth': dayObj.isOtherMonth,
-        [this.prefixClass]: dayObj.active
+        'calendar__day--otherMonth': dayObj.isOtherMonth
       }
-
-      if (dayObj.active) oClassList[dayObj.className] = true
-
+      if (type === 'active') {
+        oClassList[this.prefixClass] = dayObj.active
+        if (dayObj.active && dayObj.className) oClassList[dayObj.className] = true
+      }
+      if (type === 'toggling') {
+        oClassList[this.togglingClass] = dayObj.toggling
+        if (dayObj.toggling && dayObj.togglingClassName) oClassList[dayObj.togglingClassName] = true
+      }
       return oClassList
     }
   },
@@ -181,7 +198,11 @@ export default {
     // 外層來的資料有變化時
     activeDates (nVal) {
       if (!(nVal instanceof Array)) return
-      this.initActiveDates(nVal)
+      this.initDateClassName(nVal, 'active')
+    },
+    togglingDates (nVal) {
+      if (!(nVal instanceof Array)) return
+      this.initDateClassName(nVal, 'toggling')
     }
   },
   created () {
@@ -240,8 +261,13 @@ export default {
     justify-content: center;
     align-items: center;
     font-size: 16px;
-    height: 31px;
+    height: 27px;
+    margin: 2px 0;
     color: #5DB3D4;
+
+    &.calendar--toggling {
+      background-color: rgba(#666, 0.1);
+    }
   }
 
   .day__weektitle {
