@@ -12,7 +12,7 @@
              :class="classList(dayObj, 'toggling')"
              :key="`day${key}`">
           <div @mouseover="dragDay(dayObj)"
-               @mousedown="mouseDown(dayObj)"
+               @mousedown.left="mouseDown(dayObj)"
                class="day"
                :class="classList(dayObj, 'active')">{{ dayObj.value }}</div>
         </div>

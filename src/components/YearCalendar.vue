@@ -192,11 +192,12 @@ export default {
   },
   methods: {
     mouseUp (type, type2) {
-      console.log(type2)
       if (this.isMouseDown && this.isToggling && type === 'confirm') {
         this.$emit('update:activeDates', this.concatTogglingAndActive())
       }
       setTimeout(() => {
+        this.toggleDateFirst = {}
+        this.toggleDateLast = {}
         this.togglingDates = []
         this.isToggling = false
         this.isMouseDown = false
@@ -257,11 +258,6 @@ export default {
         this.isToggling = true
         this.initTogglingDates(this.toggleDateFirst, this.toggleDateLast)
       }
-      // this.$emit('toggleDate', {
-      //   date: activeDate,
-      //   selected: dateObj.selected,
-      //   className: dateObj.className
-      // })
     },
     initTogglingDates (toggleDateFirst, toggleDateLast) {
       let startDate = dayjs(toggleDateFirst)
@@ -281,13 +277,11 @@ export default {
       // let oDate = isActiveDateUsingString ? startDate.format('YYYY-MM-DD') : { date: startDate.format('YYYY-MM-DD') }
       togglingDates.push({ date: startDate.format('YYYY-MM-DD') })
       this.togglingDates = togglingDates
-      console.log('initTogglingDates')
     },
     // 点击某一天是触发
     addOneActiveDate (activeDate, className) {
       let dateIndex
       let newDates
-
       if (this.isUsingString) {
         dateIndex = this.activeDates.indexOf(activeDate)
         newDates = this.modifiedActiveDates(dateIndex, activeDate)
@@ -296,11 +290,9 @@ export default {
           date: activeDate,
           className: className // 原為 this.defaultClassName ，修正bug(丁丁)
         }
-
         dateIndex = this.activeDates.indexOf(this.activeDates.find((i) => i.date === activeDate))
         newDates = this.modifiedActiveDates(dateIndex, oDate)
       }
-      console.log('newDates', newDates)
       this.$emit('update:activeDates', newDates)
     },
     modifiedActiveDates (dateIndex, activeDate) {
