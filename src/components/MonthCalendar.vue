@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import dayjs from 'dayjs'
+// import dayjs from 'dayjs'
 export default {
   name: 'month-calendar',
   props: {
@@ -36,11 +36,11 @@ export default {
     },
     month: {
       type: [String, Number],
-      default: () => dayjs().month() + 1
+      default: () => this.$dayjs().month() + 1
     },
     year: {
       type: [String, Number],
-      default: () => dayjs().year()
+      default: () => this.$dayjs().year()
     },
     lang: {
       type: String,
@@ -97,7 +97,7 @@ export default {
   methods: {
     initCalendar () {
       if (!this.year || !this.month) return []
-      const activeMonth = dayjs().set('date', 1).set('year', this.year).set('month', this.month - 1)
+      const activeMonth = this.$dayjs().set('date', 1).set('year', this.year).set('month', this.month - 1)
       let firstDay = activeMonth.startOf('month').day() - 1
       if (firstDay < 0) firstDay += 7
       const lastDate = activeMonth.endOf('month').date()
@@ -113,7 +113,7 @@ export default {
           active: false,
           toggling: false,
           isOtherMonth,
-          dateStr: value && !isOtherMonth ? dayjs().set('year', this.year).set('month', this.month - 1).set('date', value).format('YYYY-MM-DD') : ''
+          dateStr: value && !isOtherMonth ? this.$dayjs().set('year', this.year).set('month', this.month - 1).set('date', value).format('YYYY-MM-DD') : ''
         }
       })
       this.initDateClassName(this.activeDates)
@@ -131,7 +131,7 @@ export default {
         } else if (typeof date === 'object') {
           oDate = date
         }
-        let dayjsObj = dayjs(oDate.date)
+        let dayjsObj = this.$dayjs(oDate.date)
         if (dayjsObj.year() !== this.year) return
         let activeDate = dayjsObj.date()
         let row = Math.floor(activeDate / 7)

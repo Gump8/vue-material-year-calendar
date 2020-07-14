@@ -1,5 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
+import dayjs from 'dayjs'
+
+Vue.prototype.$dayjs = dayjs
 
 Vue.config.productionTip = false
 

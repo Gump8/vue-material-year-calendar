@@ -41,7 +41,7 @@
 </template>
 
 <script>
-import dayjs from 'dayjs'
+// import dayjs from 'dayjs'
 import MonthCalendar from './MonthCalendar'
 export default {
   name: 'year-calendar',
@@ -87,7 +87,7 @@ export default {
     // value 為從外層傳進來的 v-model="year"
     value: {
       type: [String, Number],
-      default: dayjs().year()
+      default: () => { this.$dayjs().year() }
     },
     lang: {
       type: String,
@@ -148,8 +148,8 @@ export default {
           }
         }
 
-        if (dayjs(oDate.date).year() !== this.value) return // 讓2020年1月的資料，不會放到 2019年的1月資料裡
-        let m = (dayjs(oDate.date).month() + 1).toString()
+        if (this.$dayjs(oDate.date).year() !== this.value) return // 讓2020年1月的資料，不會放到 2019年的1月資料裡
+        let m = (this.$dayjs(oDate.date).month() + 1).toString()
         if (!month[m]) month[m] = []
         month[m].push(oDate)
       })
@@ -173,8 +173,8 @@ export default {
           }
         }
 
-        if (dayjs(oDate.date).year() !== this.value) return // 讓2020年1月的資料，不會放到 2019年的1月資料裡
-        let m = (dayjs(oDate.date).month() + 1).toString()
+        if (this.$dayjs(oDate.date).year() !== this.value) return // 讓2020年1月的資料，不會放到 2019年的1月資料裡
+        let m = (this.$dayjs(oDate.date).month() + 1).toString()
         if (!month[m]) month[m] = []
         month[m].push(oDate)
       })
@@ -196,8 +196,6 @@ export default {
         this.$emit('update:activeDates', this.concatTogglingAndActive())
       }
       setTimeout(() => {
-        this.toggleDateFirst = {}
-        this.toggleDateLast = {}
         this.togglingDates = []
         this.isToggling = false
         this.isMouseDown = false
@@ -217,7 +215,7 @@ export default {
       })
     },
     // toggleDate (dateObj) {
-    //   const activeDate = dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
+    //   const activeDate = this.$dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
     //   this.$emit('toggleDate', {
     //     date: activeDate,
     //     selected: dateObj.selected,
@@ -242,7 +240,7 @@ export default {
     //   this.$emit('update:activeDates', newDates)
     // },
     toggleDate (dateObj) {
-      const activeDate = dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
+      const activeDate = this.$dayjs().set('year', this.value).set('month', dateObj.month - 1).set('date', dateObj.date).format('YYYY-MM-DD')
       let className
       if (dateObj.isToggleDateFirst) {
         className = dateObj.className
@@ -258,10 +256,15 @@ export default {
         this.isToggling = true
         this.initTogglingDates(this.toggleDateFirst, this.toggleDateLast)
       }
+      // this.$emit('toggleDate', {
+      //   date: activeDate,
+      //   selected: dateObj.selected,
+      //   className: dateObj.className
+      // })
     },
     initTogglingDates (toggleDateFirst, toggleDateLast) {
-      let startDate = dayjs(toggleDateFirst)
-      let endDate = dayjs(toggleDateLast)
+      let startDate = this.$dayjs(toggleDateFirst)
+      let endDate = this.$dayjs(toggleDateLast)
       if (startDate.diff(endDate, 'day') > 0) {
         let changeDate = startDate
         startDate = endDate
@@ -282,6 +285,7 @@ export default {
     addOneActiveDate (activeDate, className) {
       let dateIndex
       let newDates
+
       if (this.isUsingString) {
         dateIndex = this.activeDates.indexOf(activeDate)
         newDates = this.modifiedActiveDates(dateIndex, activeDate)
@@ -290,6 +294,7 @@ export default {
           date: activeDate,
           className: className // 原為 this.defaultClassName ，修正bug(丁丁)
         }
+
         dateIndex = this.activeDates.indexOf(this.activeDates.find((i) => i.date === activeDate))
         newDates = this.modifiedActiveDates(dateIndex, oDate)
       }
